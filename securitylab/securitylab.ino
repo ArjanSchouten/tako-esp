@@ -1,9 +1,10 @@
 #include "storage.cpp"
 /* include wifi libraries */
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
+
 #define DEBUG=1
+#define STORAGEDEBUG=1
 
 Storage storage;
 Storage::DeviceId deviceId;
@@ -51,5 +52,7 @@ void setup() {
 void loop() {
   //Wifi accespoint code 
   server.handleClient();
+
+  processWiFi();
 }
 
