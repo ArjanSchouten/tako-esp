@@ -1,8 +1,13 @@
 #include "ESP8266WiFi.h"
 #include "build/configuration.c"
+#include <DNSServer.h>
+#include "util"
+
+const byte DNS_PORT = 53;
+IPAddress apIP(192, 168, 4, 1);
 
 //Load the external code coming from xxd which places the html contents as a char array in a c file.
-extern unsigned char html_configuration_html[];
+extern unsigned char __html_configuration_html[];
 
 //The different WiFi statuses we have
 enum WiFiStatus {UNCONFIGURED, CONNECTED, SCANNING_NETWORK, CONNECTING, WAITING_FOR_USER};
@@ -10,12 +15,17 @@ enum WiFiStatus {UNCONFIGURED, CONNECTED, SCANNING_NETWORK, CONNECTING, WAITING_
 enum WiFiStatus currentWiFiStatus = UNCONFIGURED;
 int networksFound;
 
+DNSServer dnsServer;
+
 /* Just a little test message.  Go to http://192.168.4.1 in a web browser */
 void handleRoot() {
-  String html = String(reinterpret_cast<const char*>(html_configuration_html));
+  String html = String(reinterpret_cast<const char*>(__html_configuration_html));
+
+  String ssid;
   for (int i = 0; i < networksFound; i ++) {
-    html = html + escapeHtml(WiFi.SSID(i)) + "<br/>";
+    ssid = ssid + escapeHtml(WiFi.SSID(i)) + "<br/>";
   }
+  html.replace("{ssid}", ssid);
   server.send(200, "text/html", html);
 }
 
@@ -52,6 +62,11 @@ void saveConfiguration() {
 }
 
 void setupServer(int networksFound) {
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+  dnsServer.setTTL(300);
+  dnsServer.start(DNS_PORT, "mytako.local", apIP);
+  dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
+
   Serial.print("Found networks: ");
   Serial.println(networksFound);
   Serial.print("Configuring access point...");
@@ -85,30 +100,12 @@ void processWiFi() {
         }
       }
       break;
+    case WAITING_FOR_USER:
+      {
+        dnsServer.processNextRequest();
+      }
+      break;
   }
 }
 
-String escapeHtml(String param)  {
-  param.replace("+", " ");
-  param.replace("%21", "!");
-  param.replace("%23", "#");
-  param.replace("%24", "$");
-  param.replace("%26", "&");
-  param.replace("%27", "'");
-  param.replace("%28", "(");
-  param.replace("%29", ")");
-  param.replace("%2A", "*");
-  param.replace("%2B", "+");
-  param.replace("%2C", ",");
-  param.replace("%2F", "/");
-  param.replace("%3A", ":");
-  param.replace("%3B", ";");
-  param.replace("%3D", "=");
-  param.replace("%3F", "?");
-  param.replace("%40", "@");
-  param.replace("%5B", "[");
-  param.replace("%5D", "]");
-
-  return param;
-}
 
