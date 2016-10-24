@@ -1,0 +1,8 @@
+sudo: required
+language: c 
+addons:   
+  apt:     
+    packages:
+     - flawfinder
+script:
+ - flawfinder ./
