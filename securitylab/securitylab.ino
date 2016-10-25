@@ -4,9 +4,27 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
+/* include button library */
+#include <AnalogMultiButton.h>
+
+// Debug on=1 debug off=0
 #define DEBUG=1
 
 const String version = "1.0.0";
+
+// Buttons Pin
+const int BUTTONS_PIN = A0;
+// buttons arary
+const int BUTTONS_TOTAL = 3;
+const int BUTTONS_VALUES[BUTTONS_TOTAL] = {5, 313, 475};
+// button names
+const int BUTTON_RECIEVE = 0;
+const int BUTTON_SEND = 1;
+const int BUTTON_RESET = 2;
+
+// make an AnalogMultiButton object, pass in the pin, total and values array
+AnalogMultiButton buttons(BUTTONS_PIN, BUTTONS_TOTAL, BUTTONS_VALUES);
+
 const char *host = "arjan-schouten.nl";
 const int port = 4443;
 
@@ -16,14 +34,6 @@ Storage storage;
 Storage::DeviceId deviceId;
 
 ESP8266WebServer server(80);
-
-// Pin definitions
-const int RED_LED_PIN = 5;
-const int GREEN_LED_PIN = 4;
-const int YELLOW_LED_PIN = 3;
-const int SEND_BUTTON_PIN = 2;
-const int RECIEVE_BUTTON_PIN = 1;
-const int RESET_BUTTON_PIN = 0;
 
 Storage::WifiSettings wifiSettings;
 const char *ssid = "Tako Setup";
@@ -72,11 +82,33 @@ void setup() {
 }
 
 void loop() {
+  // update the AnalogMultiButton object every loop
+  buttons.update();
+
+  if(buttons.isPressed(BUTTON_RECIEVE))
+  {
+     Serial.println("Receive message");
+  } 
+
+  // check if BUTTON_GREEN has just been pressed this update
+  if(buttons.isPressed(BUTTON_SEND))
+  {
+    Serial.println("Message is Send");
+  }
+
+  // check if BUTTON_GREEN has just been pressed this update
+  if(buttons.isPressed(BUTTON_RESET))
+  {
+    Serial.println("Reset Tako");
+  }
+  
   //Wifi accespoint code
   server.handleClient();
 
   Http::PingResult result = http.pingServer(deviceId.deviceId, version);
 
-  delay(10000);
+  
+
+  delay(1000);
 }
 
