@@ -24,7 +24,7 @@ class Storage {
       const int len = 32;
     };
 
-    struct WifiStorage : StorageSettings<DeviceId> {
+    struct WifiStorage : StorageSettings<WifiSettings> {
       const int start = 32;
       const int len = 128;
     };
@@ -41,7 +41,7 @@ class Storage {
 
       EEPROM.put(storage.start, storage.val);
       EEPROM.commit();
-      
+
       return true;
     }
 
@@ -55,4 +55,12 @@ class Storage {
   private:
     const int maxMemorySize = 512;
 };
+
+
+
+
+
+
+
+
 
