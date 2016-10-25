@@ -1,10 +1,11 @@
-#include "storage.cpp"
+s#include "storage.cpp"
 #include "http.cpp"
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
+
 #define DEBUG=1
+#define STORAGEDEBUG=1
 
 const String version = "1.0.0";
 const char *host = "arjan-schouten.nl";
@@ -85,5 +86,6 @@ void loop() {
   }
 
   delay(5000);
+  processWiFi();
 }
 
