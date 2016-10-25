@@ -1,32 +1,18 @@
 #include<EEPROM.h>
+#include "Arduino.h"
 
 class Storage {
   public:
+    static const int DEVICEID = 2;
+    static const int WIFI_SETTINGS_ID = 3;
+
     struct DeviceId {
       char* deviceId;
     };
 
     struct WifiSettings {
       char* ssid;
-      char* username;
       char* password;
-    };
-
-    template <typename T>
-    struct StorageSettings {
-      int start;
-      int len;
-      T val;
-    };
-
-    struct DeviceIdStorage : StorageSettings<DeviceId> {
-      const int start = 0;
-      const int len = 32;
-    };
-
-    struct WifiStorage : StorageSettings<WifiSettings> {
-      const int start = 32;
-      const int len = 128;
     };
 
     void init() {
@@ -34,26 +20,64 @@ class Storage {
     }
 
     template<typename T>
-    bool save(struct StorageSettings<T> storage) {
-      if (sizeof(storage.val) > storage.len) {
-        return false;
+    bool save(int id, T storage) {
+      int addr;
+      int size;
+      switch (id) {
+        case DEVICEID:
+          addr = DEVICE_ID_START;
+          size = DEVICE_ID_SIZE;
+          break;
+        case WIFI_SETTINGS_ID:
+          addr = WIFI_SETTINGS_START;
+          size = WIFI_SETTINGS_SIZE;
+          break;
+        default:
+          return false;
+          break;
       }
 
-      EEPROM.put(storage.start, storage.val);
+      Serial.print("Addr ");
+      Serial.println(addr);
+
+      Serial.print("Size ");
+      Serial.println(size);
+      
+      EEPROM.put(addr, storage);
       EEPROM.commit();
 
       return true;
     }
 
     template<typename T>
-    T read(struct StorageSettings<T> storage) {
-      EEPROM.get(storage.start, storage.val);
+    bool read(int id, T *storage) {
+      int addr;
+      int size;
+      switch (id) {
+        case DEVICEID:
+          addr = DEVICE_ID_START;
+          size = DEVICE_ID_SIZE;
+          break;
+        case WIFI_SETTINGS_ID:
+          addr = WIFI_SETTINGS_START;
+          size = WIFI_SETTINGS_SIZE;
+          break;
+        default:
+          size = 0;
+          addr = -1;
+      }
       
-      return storage.val;
+      storage = EEPROM.get(addr, storage);
+
+      return true;
     }
 
   private:
-    const int maxMemorySize = 512;
+    const int maxMemorySize = 1024;
+    static const int DEVICE_ID_START = 0;
+    static const int DEVICE_ID_SIZE = 64;
+    static const int WIFI_SETTINGS_START = 65;
+    static const int WIFI_SETTINGS_SIZE = 128;
 };
 
 

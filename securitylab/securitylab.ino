@@ -1,12 +1,12 @@
 #include "storage.cpp"
 #include "http.cpp"
-/* include wifi libraries */
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
 #define DEBUG=1
 
+const String version = "1.0.0";
 const char *host = "arjan-schouten.nl";
 const int port = 4443;
 
@@ -40,25 +40,22 @@ void setup() {
 #endif
 
   storage.init();
-  Storage::DeviceIdStorage deviceIdStorage;
-  Storage::WifiStorage wifiStorage;
-
 
 #ifdef DEBUG
-  deviceIdStorage.val.deviceId = "This is a testThis is a test";
-  storage.save(deviceIdStorage);
+  deviceId.deviceId = "test";
 
-  wifiStorage.val.ssid = "ESP_AP";
-  wifiStorage.val.password = "testtest";
-  storage.save(wifiStorage);
+  wifiSettings.ssid = "ESP_AP";
+  wifiSettings.password = "testtest";
 #endif
 
-  deviceId = storage.read<Storage::DeviceId>(deviceIdStorage);
+  storage.read<Storage::DeviceId>(Storage::DEVICEID, &deviceId);
+  storage.read<Storage::WifiSettings>(Storage::WIFI_SETTINGS_ID, &wifiSettings);
+
 #ifdef DEBUG
-  Serial.println(deviceId.deviceId);
+  Serial.println("Device-ID: " + String(deviceId.deviceId));
+  Serial.println("WiFi SSID: " + String(wifiSettings.ssid));
 #endif
 
-  wifiSettings = storage.read<Storage::WifiSettings>(wifiStorage);
   Serial.println(sizeof(wifiSettings.ssid));
   if (sizeof(wifiSettings.ssid) <= 0) {
     // Wifi_accespoint.ino setup a http server on the esp8266
@@ -78,7 +75,7 @@ void loop() {
   //Wifi accespoint code
   server.handleClient();
 
-  Http::PingResult result = http.pingServer();
+  Http::PingResult result = http.pingServer(deviceId.deviceId, version);
 
   delay(10000);
 }
