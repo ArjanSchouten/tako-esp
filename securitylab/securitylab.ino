@@ -56,27 +56,34 @@ void setup() {
   Serial.println("WiFi SSID: " + String(wifiSettings.ssid));
 #endif
 
-  Serial.println(sizeof(wifiSettings.ssid));
-  if (sizeof(wifiSettings.ssid) <= 0) {
+  if (sizeof wifiSettings.ssid <= 0) {
     // Wifi_accespoint.ino setup a http server on the esp8266
     SetupApHttp();
   }
   else {
-    Serial.println("Connecting to Wifi network");
-    WiFi.begin(wifiSettings.ssid, wifiSettings.password);
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
+    connectWifi();
   }
+}
+
+void connectWifi() {
+  WiFi.begin(wifiSettings.ssid, wifiSettings.password);
+  WiFi.setAutoReconnect(true);
 }
 
 void loop() {
   //Wifi accespoint code
   server.handleClient();
 
-  Http::PingResult result = http.pingServer(deviceId.deviceId, version);
+  if (WiFi.status() == WL_CONNECTED) {
+    Http::PingResult* result = http.pingServer(deviceId.deviceId, version);
+    Serial.println(result->message);
+    Serial.print("Must update?");
+    Serial.println(result->updateAvailable ? "Yes": "No");
+    free(result);
+  } else {
+    connectWifi();
+  }
 
-  delay(10000);
+  delay(5000);
 }
 

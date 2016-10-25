@@ -1,23 +1,24 @@
 #include<WiFiClientSecure.h>
 #include<Arduino.h>
+#include <ArduinoJson.h>
 
 class Http {
   public:
     WiFiClientSecure client;
 
-    struct PingResult {
+    typedef struct PingResult {
       bool updateAvailable;
-      String messages[];
-    };
+      const char* message;
+    } PingResult;
 
     Http(const char *host, unsigned int port) {
       this->host = host;
       this->port = port;
     }
 
-    PingResult pingServer(String deviceId, String version) {
+    PingResult* pingServer(String deviceId, String version) {
       unsigned long start = millis();
-      PingResult result;
+      PingResult *result = new PingResult();
       if (!client.connect(host, port)) {
         Serial.println("connection failed");
         return result;
@@ -31,20 +32,30 @@ class Http {
         client.print("Host: " + String(host) + ":" + port);
         client.print("\n\n");
 
+        while (client.connected() && !client.available()) delay(10);
+
         if (client.available()) {
           String response = client.readString();
           int bodypos =  response.indexOf("\r\n\r\n") + 4;
           String body = response.substring(bodypos);
-          Serial.println("Body: " + body);
+
+          if (body.length()) {
+            StaticJsonBuffer<256> jsonBuffer;
+            JsonObject& root = jsonBuffer.parseObject(body);
+
+            if (root.success()) {
+              result->message = root["message"].asString();
+              result->updateAvailable = root["update"];
+            }
+          }
         }
       }
-#ifdef DEBUG
       else {
         Serial.println("Certificate fingerprint did not match");
       }
 
-      Serial.println("Request took: " + millis() - start);
-#endif
+      Serial.print("Request took: ");
+      Serial.println(millis() - start);
 
       return result;
     }
