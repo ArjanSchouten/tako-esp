@@ -7,8 +7,8 @@ class Http {
     WiFiClientSecure client;
 
     typedef struct PingResult {
-      bool updateAvailable;
-      const char* message;
+      bool update;
+      char* message;
     } PingResult;
 
     Http(const char *host, unsigned int port) {
@@ -16,9 +16,8 @@ class Http {
       this->port = port;
     }
 
-    PingResult* pingServer(String deviceId, String version) {
-      unsigned long start = millis();
-      PingResult *result = new PingResult();
+    PingResult pingServer(String deviceId, String version) {
+      PingResult result;
       if (!client.connect(host, port)) {
         Serial.println("connection failed");
         return result;
@@ -35,29 +34,46 @@ class Http {
         while (client.connected() && !client.available()) delay(10);
 
         if (client.available()) {
-          String response = client.readString();
-          int bodypos =  response.indexOf("\r\n\r\n") + 4;
-          String body = response.substring(bodypos);
+          String r = client.readString();
+          int bodypos =  r.indexOf("\r\n\r\n") + 4;
+          String b = r.substring(bodypos);
 
-          if (body.length()) {
+          if (b.length()) {
             StaticJsonBuffer<256> jsonBuffer;
-            JsonObject& root = jsonBuffer.parseObject(body);
+            JsonObject& root = jsonBuffer.parseObject(b);
 
             if (root.success()) {
-              result->message = root["message"].asString();
-              result->updateAvailable = root["update"];
+              result.message = (char*)root["message"].asString();
+              result.update = root["update"];
             }
           }
         }
       }
-      else {
-        Serial.println("Certificate fingerprint did not match");
-      }
-
-      Serial.print("Request took: ");
-      Serial.println(millis() - start);
 
       return result;
+    }
+
+    bool sendMessage(String deviceId, String message) {
+      if (!client.connect(host, port)) {
+        Serial.println("connection failed");
+        return false;
+      }
+
+      if (client.verify(fp, host)) {
+        String body = "{\"message\": \"" + message + "\"}\n";
+        Serial.println("Certificate fingerprint matches");
+        client.print("POST /send HTTP/1.1\n");
+        client.print("Device-ID: " + deviceId + "\n");
+        client.print("Content-Type: application/json\n");
+        client.print("Content-Length: "+ String(body.length()) + "\n");
+        client.print("Host: " + String(host) + ":" + port);
+        client.print("\n\n");
+        client.print(body);
+
+        while (client.connected() && !client.available()) delay(10);
+      }
+
+      return true;
     }
 
   protected:

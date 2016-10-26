@@ -1,21 +1,18 @@
-s#include "storage.cpp"
 #include "http.cpp"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <ArduinoOTA.h>
+#include <ESP8266httpUpdate.h>
 
-#define DEBUG=1
-#define STORAGEDEBUG=1
-
-const String version = "1.0.0";
+const String version = "1.0.1";
 const char *host = "arjan-schouten.nl";
 const int port = 4443;
 
+#define DEBUG
+
+//Create a http handler for connection with the server
 Http http = Http(host, port);
 
-Storage storage;
-Storage::DeviceId deviceId;
-
+//Setup the server with the 
 ESP8266WebServer server(80);
 
 // Pin definitions
@@ -26,9 +23,9 @@ const int SEND_BUTTON_PIN = 2;
 const int RECIEVE_BUTTON_PIN = 1;
 const int RESET_BUTTON_PIN = 0;
 
-Storage::WifiSettings wifiSettings;
-const char *ssid = "Tako Setup";
-const char *password = "HalloTako";
+const char *ssid = "ESP_AP";
+const char *password = "testtest";
+const char *deviceId = "test";
 
 void setup() {
   // setup a delay for calibrating the wifi module
@@ -38,54 +35,37 @@ void setup() {
   Serial.begin(115200);
   //baudrate setting
   Serial.println();
+  Serial.println(version);
 #endif
 
-  storage.init();
-
-#ifdef DEBUG
-  deviceId.deviceId = "test";
-
-  wifiSettings.ssid = "ESP_AP";
-  wifiSettings.password = "testtest";
-#endif
-
-  storage.read<Storage::DeviceId>(Storage::DEVICEID, &deviceId);
-  storage.read<Storage::WifiSettings>(Storage::WIFI_SETTINGS_ID, &wifiSettings);
-
-#ifdef DEBUG
-  Serial.println("Device-ID: " + String(deviceId.deviceId));
-  Serial.println("WiFi SSID: " + String(wifiSettings.ssid));
-#endif
-
-  if (sizeof wifiSettings.ssid <= 0) {
-    // Wifi_accespoint.ino setup a http server on the esp8266
-    SetupApHttp();
-  }
-  else {
-    connectWifi();
-  }
-}
-
-void connectWifi() {
-  WiFi.begin(wifiSettings.ssid, wifiSettings.password);
+  WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(250);
+#ifdef DEBUG
+    Serial.print(".");
+#endif
+  }
 }
 
 void loop() {
   //Wifi accespoint code
   server.handleClient();
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Http::PingResult* result = http.pingServer(deviceId.deviceId, version);
-    Serial.println(result->message);
-    Serial.print("Must update?");
-    Serial.println(result->updateAvailable ? "Yes": "No");
-    free(result);
-  } else {
-    connectWifi();
+  Http::PingResult result = http.pingServer(deviceId, version);
+  Serial.println(result.message);
+  
+  http.sendMessage(deviceId, "Hoi!!!");
+
+  if (result.update) {
+    t_httpUpdate_return ret = ESPhttpUpdate.update(host, 8080, "/update/1.0.1");
+    Serial.println(ESPhttpUpdate.getLastErrorString());
   }
 
-  delay(5000);
   processWiFi();
+#ifdef DEBUG
+  Serial.print("Free memory:");
+  Serial.println(ESP.getFreeHeap());
+#endif
 }
 

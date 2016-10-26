@@ -1,7 +1,6 @@
 #include "ESP8266WiFi.h"
 #include "build/configuration.c"
 #include <DNSServer.h>
-#include "util"
 
 const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 4, 1);
@@ -10,9 +9,9 @@ IPAddress apIP(192, 168, 4, 1);
 extern unsigned char __html_configuration_html[];
 
 //The different WiFi statuses we have
-enum WiFiStatus {UNCONFIGURED, CONNECTED, SCANNING_NETWORK, CONNECTING, WAITING_FOR_USER};
+enum WiFiStatus {IDLE, SCANNING_NETWORK, CONNECTING, WAITING_FOR_USER};
 
-enum WiFiStatus currentWiFiStatus = UNCONFIGURED;
+enum WiFiStatus currentWiFiStatus = IDLE;
 int networksFound;
 
 DNSServer dnsServer;
@@ -82,10 +81,12 @@ void setupServer(int networksFound) {
 }
 
 void SetupApHttp() {
-  const bool showHiddenNetworks = true;
-  const bool scanNetworksAsync = true;
-  WiFi.scanNetworks(scanNetworksAsync, showHiddenNetworks);
-  currentWiFiStatus = SCANNING_NETWORK;
+  if (currentWiFiStatus == IDLE) {
+    const bool showHiddenNetworks = true;
+    const bool scanNetworksAsync = true;
+    WiFi.scanNetworks(scanNetworksAsync, showHiddenNetworks);
+    currentWiFiStatus = SCANNING_NETWORK;
+  }
 }
 
 void processWiFi() {

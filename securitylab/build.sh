@@ -8,3 +8,4 @@ command -v xxd >/dev/null 2>&1 || { echo >&2 "xxd is not installed. (For OS X: h
 xxd -i ./html/configuration.html > ./build/configuration.c
 
 echo "Dependencies are build"
+
