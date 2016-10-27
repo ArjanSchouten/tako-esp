@@ -9,6 +9,7 @@ class Http {
     typedef struct PingResult {
       bool update;
       char* message;
+      char* newversion;
     } PingResult;
 
     Http(const char *host, unsigned int port) {
@@ -45,6 +46,7 @@ class Http {
             if (root.success()) {
               result.message = (char*)root["message"].asString();
               result.update = root["update"];
+              result.newversion = (char *)root["newversion"].asString();
             }
           }
         }

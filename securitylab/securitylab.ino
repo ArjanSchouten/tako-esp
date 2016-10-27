@@ -27,8 +27,6 @@ CRGB leds[NUM_LEDS];
 #define BRIGHTNESS          96
 #define FRAMES_PER_SECOND  120
 
-const String version = "1.0.0";
-
 // Buttons Pin
 const int BUTTONS_PIN = A0;
 // buttons arary
@@ -41,13 +39,14 @@ const int BUTTON_SEND = 1;
 // make an AnalogMultiButton object, pass in the pin, total and values array
 AnalogMultiButton buttons(BUTTONS_PIN, BUTTONS_TOTAL, BUTTONS_VALUES);
 
+const String version = "1";
 const char *host = "arjan-schouten.nl";
 const int port = 4443;
 
 //Create a http handler for connection with the server
 Http http = Http(host, port);
 
-//Setup the server with the 
+//Setup the server with the
 ESP8266WebServer server(80);
 
 const char *ssid = "ESP_AP";
@@ -138,14 +137,22 @@ void loop() {
   }
 
   Http::PingResult result = http.pingServer(deviceId, version);
+#ifdef DEBUG
+  Serial.print("Message: ");
   Serial.println(result.message);
-  
-  http.sendMessage(deviceId, "Hoi!!!");
+
+  Serial.print("Update: ");
+  Serial.println(result.message ? "Yes" : "No" );
+  Serial.print("New version: ");
+  Serial.println(result.newversion);
+#endif  
 
   if (result.update) {
-    t_httpUpdate_return ret = ESPhttpUpdate.update(host, 8080, "/update/1.0.1");
+    t_httpUpdate_return ret = ESPhttpUpdate.update(host, 8080, "/update/" + String(result.newversion));
     Serial.println(ESPhttpUpdate.getLastErrorString());
   }
+
+  http.sendMessage(deviceId, "Hoi!!!");
 
   processWiFi();
 #ifdef DEBUG
