@@ -13,8 +13,8 @@
 
 FASTLED_USING_NAMESPACE
 
-// Debug on=1 debug off=0
-#define DEBUG=1
+// Remove DEBUG for none debug mode
+#define DEBUG
 
 //Define property's for led strip
 #define DATA_PIN    5
@@ -61,6 +61,7 @@ void setup() {
   Serial.begin(115200);
   //baudrate setting
   Serial.println();
+  Serial.print("Current firmware version: ");
   Serial.println(version);
 #endif
 
@@ -73,79 +74,80 @@ void setup() {
     Serial.print(".");
 #endif
   }
-  
+
   // LED strip configuration
-  FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
-  
+
 }
 
 void loop() {
   // update the AnalogMultiButton object every loop
   buttons.update();
 
-//  Debugging buttons 
-//  Serial.println(analogRead(A0));
+  //  Debugging buttons
+  //  Serial.println(analogRead(A0));
 
-  if(buttons.onPress(BUTTON_RECIEVE))
+  if (buttons.onPress(BUTTON_RECIEVE))
   {
-     Serial.println("Receive message");
-    
-    for(int i=0; i < NUM_LEDS; i++) {
+    Serial.println("Receive message");
+
+    for (int i = 0; i < NUM_LEDS; i++) {
       leds[i] = CRGB::Orange;
       FastLED.show();
       delay(1000);
     }
     delay(2000);
-    for(int i=0; i < NUM_LEDS; i++) {
+    for (int i = 0; i < NUM_LEDS; i++) {
       leds[i] = CRGB::Red;
       FastLED.show();
-    } 
+    }
     delay(3000);
-    
-    for(int k=0; k < NUM_LEDS; k++) {
+
+    for (int k = 0; k < NUM_LEDS; k++) {
       leds[k] = CRGB::Black;
       FastLED.show();
     }
   }
 
   // check if BUTTON_SEND has just been pressed
-  if(buttons.isPressed(BUTTON_SEND))
+  if (buttons.isPressed(BUTTON_SEND))
   {
     Serial.println("Recording Message");
-    for(int i=0; i < NUM_LEDS; i++) {
+    for (int i = 0; i < NUM_LEDS; i++) {
       leds[i] = CRGB::Blue;
       FastLED.show();
     }
   }
-  
-  if (buttons.onRelease(BUTTON_SEND)) 
-  { 
-    Serial .println("Message is Recorded, Send message"); 
-    for(int i=0; i < NUM_LEDS; i++) {
+
+  if (buttons.onRelease(BUTTON_SEND))
+  {
+    Serial .println("Message is Recorded, Send message");
+    for (int i = 0; i < NUM_LEDS; i++) {
       leds[i] = CRGB::Green;
       FastLED.show();
     }
-    
+
     delay(2000);
-    
-    for(int k=0; k < NUM_LEDS; k++) {
+
+    for (int k = 0; k < NUM_LEDS; k++) {
       leds[k] = CRGB::Black;
       FastLED.show();
     }
   }
 
-  Http::PingResult result = http.pingServer(deviceId, version);
+  Http::PingResult result;
+  http.pingServer(deviceId, version, &result);
 #ifdef DEBUG
   Serial.print("Message: ");
   Serial.println(result.message);
 
   Serial.print("Update: ");
-  Serial.println(result.message ? "Yes" : "No" );
+  Serial.println(result.update ? "Yes" : "No" );
   Serial.print("New version: ");
   Serial.println(result.newversion);
-#endif  
+#endif
 
   if (result.update) {
     t_httpUpdate_return ret = ESPhttpUpdate.update(host, 8080, "/update/" + String(result.newversion));
@@ -160,5 +162,5 @@ void loop() {
   Serial.println(ESP.getFreeHeap());
 #endif
 
-delay(100);
+  delay(100);
 }

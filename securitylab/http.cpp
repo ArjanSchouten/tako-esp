@@ -6,53 +6,57 @@ class Http {
   public:
     WiFiClientSecure client;
 
-    typedef struct PingResult {
-      bool update;
+    struct PingResult {
+      bool update = false;
       char* message;
       char* newversion;
-    } PingResult;
+    };
 
     Http(const char *host, unsigned int port) {
       this->host = host;
       this->port = port;
     }
 
-    PingResult pingServer(String deviceId, String version) {
-      PingResult result;
+    bool pingServer(String deviceId, String version, struct PingResult* result) {
       if (!client.connect(host, port)) {
         Serial.println("connection failed");
-        return result;
+        return false;
       }
 
       if (client.verify(fp, host)) {
         Serial.println("Certificate fingerprint matches");
-        client.print("GET /ping HTTP/1.1\n");
-        client.print("Firmware-Version: " + version + "\n");
-        client.print("Device-ID: " + deviceId + "\n");
-        client.print("Host: " + String(host) + ":" + port);
+        client.println("GET /ping HTTP/1.1");
+        client.println("Firmware-Version: " + version);
+        client.println("Device-ID: " + deviceId);
+        client.println("Host: " + String(host) + ":" + port);
+        client.print("Connection: close");
         client.print("\n\n");
 
         while (client.connected() && !client.available()) delay(10);
 
         if (client.available()) {
           String r = client.readString();
-          int bodypos =  r.indexOf("\r\n\r\n") + 4;
+          int bodypos = r.indexOf("\r\n\r\n") + 4;
           String b = r.substring(bodypos);
 
           if (b.length()) {
             StaticJsonBuffer<256> jsonBuffer;
             JsonObject& root = jsonBuffer.parseObject(b);
-
+            
             if (root.success()) {
-              result.message = (char*)root["message"].asString();
-              result.update = root["update"];
-              result.newversion = (char *)root["newversion"].asString();
+                if (root.containsKey("message"))
+                strcpy(result->message, root["message"]);
+              if (root.containsKey("newversion"))
+                strcpy(result->newversion, root["newversion"]);
+              result->update = root["update"];
+            } else {
+              return false;
             }
           }
         }
       }
 
-      return result;
+      return true;
     }
 
     bool sendMessage(String deviceId, String message) {
@@ -67,8 +71,9 @@ class Http {
         client.print("POST /send HTTP/1.1\n");
         client.print("Device-ID: " + deviceId + "\n");
         client.print("Content-Type: application/json\n");
-        client.print("Content-Length: "+ String(body.length()) + "\n");
-        client.print("Host: " + String(host) + ":" + port);
+        client.print("Content-Length: " + String(body.length()) + "\n");
+        client.println("Host: " + String(host) + ":" + port);
+        client.print("Connection: close");
         client.print("\n\n");
         client.print(body);
 
