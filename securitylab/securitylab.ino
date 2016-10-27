@@ -43,8 +43,12 @@ const String version = "1";
 const char *host = "arjan-schouten.nl";
 const int port = 4443;
 
+const long pingInterval = 5000;
+
 //Create a http handler for connection with the server
 Http http = Http(host, port);
+
+long previousPingMillis;
 
 //Setup the server with the
 ESP8266WebServer server(80);
@@ -80,11 +84,26 @@ void setup() {
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
 
+  previousPingMillis = millis();
 }
 
 void loop() {
   // update the AnalogMultiButton object every loop
   buttons.update();
+
+  // Ping the server on a specified interval
+  if (millis() > previousPingMillis + pingInterval) {
+    Serial.println("Sending a ping request...");
+    Http::PingResult result;
+    http.pingServer(deviceId, version, &result);
+
+    if (result.update) {
+      t_httpUpdate_return ret = ESPhttpUpdate.update(host, 8080, "/update/" + String(result.newversion));
+      Serial.println(ESPhttpUpdate.getLastErrorString());
+    }
+
+    previousPingMillis = millis();
+  }
 
   //  Debugging buttons
   //  Serial.println(analogRead(A0));
@@ -123,38 +142,19 @@ void loop() {
 
   if (buttons.onRelease(BUTTON_SEND))
   {
-    Serial .println("Message is Recorded, Send message");
+    Serial.println("Message is Recorded, Send message");
     for (int i = 0; i < NUM_LEDS; i++) {
       leds[i] = CRGB::Green;
       FastLED.show();
     }
 
-    delay(2000);
+    http.sendMessage(deviceId, "Hoi!!!");
 
     for (int k = 0; k < NUM_LEDS; k++) {
       leds[k] = CRGB::Black;
       FastLED.show();
     }
   }
-
-  Http::PingResult result;
-  http.pingServer(deviceId, version, &result);
-#ifdef DEBUG
-  Serial.print("Message: ");
-  Serial.println(result.message);
-
-  Serial.print("Update: ");
-  Serial.println(result.update ? "Yes" : "No" );
-  Serial.print("New version: ");
-  Serial.println(result.newversion);
-#endif
-
-  if (result.update) {
-    t_httpUpdate_return ret = ESPhttpUpdate.update(host, 8080, "/update/" + String(result.newversion));
-    Serial.println(ESPhttpUpdate.getLastErrorString());
-  }
-
-  http.sendMessage(deviceId, "Hoi!!!");
 
   processWiFi();
 #ifdef DEBUG
