@@ -8,8 +8,8 @@ class Http {
 
     struct PingResult {
       bool update = false;
-      char* message;
-      char* newversion;
+      String message;
+      String newversion;
     };
 
     Http(const char *host, unsigned int port) {
@@ -42,12 +42,12 @@ class Http {
           if (b.length()) {
             StaticJsonBuffer<256> jsonBuffer;
             JsonObject& root = jsonBuffer.parseObject(b);
-            
+
             if (root.success()) {
-                if (root.containsKey("message"))
-                strcpy(result->message, root["message"]);
+              if (root.containsKey("message"))
+                result->message = root["message"].asString();
               if (root.containsKey("newversion"))
-                strcpy(result->newversion, root["newversion"]);
+                result->newversion = root["newversion"].asString();
               result->update = root["update"];
             } else {
               return false;
