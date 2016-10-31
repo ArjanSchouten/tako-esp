@@ -2,7 +2,7 @@
 #define FASTLED_ESP8266_NODEMCU_PIN_ORDER
 #define FASTLED_ESP8266_D1_PIN_ORDER
 
-#include "http.cpp"
+#include "http.h"
 #include "TimerObject.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -23,7 +23,7 @@ FASTLED_USING_NAMESPACE
 //#define CLK_PIN   4
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
-#define NUM_LEDS    6
+#define NUM_LEDS    10
 CRGB leds[NUM_LEDS];
 
 #define BRIGHTNESS          96
@@ -40,7 +40,7 @@ const int BUTTON_SEND = 1;
 
 //Fade in fade out settings
 int newMessagefadeAmount = 5;
-int newMessageBrightness = 15;
+int newMessageBrightness = 10;
 
 int showMessagefadeAmount = 5;
 int showMessageBrightness = 10;
@@ -76,32 +76,38 @@ QueueArray<String> messageQueue;
 void setup() {
   // setup a delay for calibrating the wifi module
   delay(1000);
-
-#ifdef DEBUG
   Serial.begin(115200);
+#ifdef DEBUG
+
   //baudrate setting
   Serial.println();
   Serial.print("Current firmware version: ");
   Serial.println(version);
+
+  Serial.print("Is WiFi configured: ");
+  Serial.println(isConfigured() ? "Yes" : "No");
 #endif
 
-  WiFi.begin(ssid, password);
+  // Enable the WiFi module
+  WiFi.mode(WIFI_STA);
+  WiFi.begin();
   WiFi.setAutoReconnect(true);
+
+  if (!isConfigured()) {
+    scanWiFiNetworks();
+  } else {
+    pingServerTimer->Start();
+  }
 
   // LED strip configuration
   FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
-
-  pingServerTimer->Start();
 }
 
 void loop() {
   // update the AnalogMultiButton object every loop
-  buttons.update();
-  pingServerTimer->Update();
-  newMessageNotificationTimer->Update();
-  showMessageTimer->Update();
+  updateTimers();
 
   if (!messageQueue.isEmpty() && !isShowingMessage && !isRecording && !newMessageNotificationTimer->isEnabled()) {
     newMessageNotificationTimer->Start();
@@ -202,6 +208,17 @@ void pingServer() {
   if (result.update) {
     t_httpUpdate_return ret = ESPhttpUpdate.update(host, 8080, "/update/" + String(result.newversion));
     Serial.println(ESPhttpUpdate.getLastErrorString());
+  }
+}
+
+void updateTimers() {
+  buttons.update();
+  pingServerTimer->Update();
+  newMessageNotificationTimer->Update();
+  showMessageTimer->Update();
+  if (!isConfigured()) {
+    processWiFi();
+    server.handleClient();
   }
 }
 
