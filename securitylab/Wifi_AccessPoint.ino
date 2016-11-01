@@ -1,7 +1,12 @@
 #include "ESP8266WiFi.h"
 #include "build/configuration.c"
 #include <DNSServer.h>
+extern "C" {
+#include "user_interface.h"
+}
 
+const char *password = "testtest";
+const char *ssid = "Tako Setup";
 const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 4, 1);
 
@@ -10,7 +15,6 @@ extern unsigned char __html_configuration_html[];
 
 //The different WiFi statuses we have
 enum WiFiStatus {IDLE, SCANNING_NETWORK, CONNECTING, WAITING_FOR_USER};
-
 enum WiFiStatus currentWiFiStatus = IDLE;
 int networksFound;
 
@@ -22,9 +26,9 @@ void handleRoot() {
 
   String ssid;
   for (int i = 0; i < networksFound; i ++) {
-    ssid = ssid + escapeHtml(WiFi.SSID(i)) + "<br/>";
+    ssid = "<div class=\"btn ssid\">" + escapeHtml(WiFi.SSID(i)) + "</div>";
   }
-  html.replace("{ssid}", ssid);
+  html.replace("{ssids}", ssid);
   server.send(200, "text/html", html);
 }
 
@@ -61,15 +65,12 @@ void saveConfiguration() {
 }
 
 void setupServer(int networksFound) {
+  WiFi.softAP(ssid, password);
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+  
   dnsServer.setTTL(300);
   dnsServer.start(DNS_PORT, "mytako.local", apIP);
   dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
-
-  Serial.print("Found networks: ");
-  Serial.println(networksFound);
-  Serial.print("Configuring access point...");
-  WiFi.softAP(ssid, password);
 
   IPAddress myIP = WiFi.softAPIP();
   Serial.print("Tako-AP IP address: ");
@@ -77,10 +78,9 @@ void setupServer(int networksFound) {
   server.on("/", handleRoot);
   server.on("/save", saveConfiguration);
   server.begin();
-  Serial.println("HTTP server started");
 }
 
-void SetupApHttp() {
+void scanWiFiNetworks() {
   if (currentWiFiStatus == IDLE) {
     const bool showHiddenNetworks = true;
     const bool scanNetworksAsync = true;
@@ -109,12 +109,7 @@ void processWiFi() {
   }
 }
 
-
-
-
-
-
-
-
-
-
+bool isConfigured() {
+  struct station_config config;
+  return wifi_station_get_ap_info(&config) > 0;
+}

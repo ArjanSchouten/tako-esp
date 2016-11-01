@@ -38,12 +38,18 @@ const int BUTTONS_VALUES[BUTTONS_TOTAL] = {313, 475};
 const int BUTTON_RECIEVE = 0;
 const int BUTTON_SEND = 1;
 
-//Fade in fade out settings
+// Fade in fade out settings
 int newMessagefadeAmount = 5;
 int newMessageBrightness = 10;
 
-int showMessagefadeAmount = 5;
+// The brightness fade amount for a new message
+int showMessagefadeAmount = 10;
+// The current brightness of the new message color
 int showMessageBrightness = 10;
+// The amount of times that the message already faded 
+int currentShowMessageAmount = 0;
+// The amount of times that a message should fade in and fade out
+const int FADE_MESSAGE_TIMES = 5;
 
 bool isRecording = false;
 bool isShowingMessage = false;
@@ -63,8 +69,6 @@ Http http = Http(host, port);
 //Setup the server with the
 ESP8266WebServer server(80);
 
-const char *ssid = "ESP_AP";
-const char *password = "testtest";
 const char *deviceId = "test";
 
 TimerObject *pingServerTimer = new TimerObject(10000, &pingServer);
@@ -143,11 +147,10 @@ void loop() {
       leds[i] = CRGB::Green;
     }
     FastLED.show();
-    
+
     http.sendMessage(deviceId, "Hoi!!!");
   }
 
-  processWiFi();
 #ifdef DEBUG
   Serial.print("Free memory:");
   Serial.println(ESP.getFreeHeap());
@@ -170,7 +173,7 @@ void showNewMessageNotification() {
     leds[i].fadeLightBy(newMessageBrightness);
   }
   newMessageBrightness = newMessageBrightness + newMessagefadeAmount;
-  if (newMessageBrightness <= 5 || newMessageBrightness >= 120)
+  if (newMessageBrightness <= 0 || newMessageBrightness >= 80)
     newMessagefadeAmount = -newMessagefadeAmount;
   FastLED.show();
 }
@@ -186,12 +189,16 @@ void showMessage() {
   }
   FastLED.show();
   showMessageBrightness = showMessageBrightness + showMessagefadeAmount;
-  if (showMessageBrightness >= 120) {
-    showMessageBrightness = 10;
-    isShowingMessage = false;
-    messageQueue.pop();
-    showMessageTimer->Stop();
-    resetLeds();
+  if (showMessageBrightness >= 90) {
+    currentShowMessageAmount ++;
+    showMessageBrightness = 0;
+    if (currentShowMessageAmount >= FADE_MESSAGE_TIMES) {
+      currentShowMessageAmount = 0;
+      isShowingMessage = false;
+      messageQueue.pop();
+      showMessageTimer->Stop();
+      resetLeds();
+    }
   }
 }
 

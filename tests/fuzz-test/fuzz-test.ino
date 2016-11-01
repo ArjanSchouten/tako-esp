@@ -17,5 +17,9 @@ void setup() {
 void loop() {
   Http::PingResult result;
   http.pingServer(deviceId, version, &result);
+  Serial.print("Message: ");
   Serial.println(result.message);
+
+  Serial.print("Free heap: ");
+  Serial.println(ESP.getFreeHeap());
 }

@@ -1,15 +1,126 @@
 <!DOCTYPE html>
 <html>
+	<head>
+		<style>
+			.container {
+				width: 800px;
+				margin: 0 auto;
+			}
+			body {
+				font-family:  "Helvetica Neue", Helvetica, Arial, sans-serif;
+				background: #EFEFEF;
+				font-size: 14px;
+			}
+			h1 {
+				margin-bottom: 10px;
+				margin-top: 20px;
+				text-align: center;
+			}
+			h2 {
+				font-size: 16px;
+			}
+			input {
+				border: 1px solid #ccc;
+				border-radius: 4px;
+				box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+				color: #555;
+				height: 34px;
+				padding: 6px 12px;
+				transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;
+				width: 100%;
+			}
+			.row {
+				margin: 0 -15px;
+			}
+			.row::after, row::before {
+				clear: both;
+			}
+			.col {
+				float: left;
+				padding: 0 15px;
+				position: relative;
+				min-height: 1px;
+				box-sizing: border-box;
+			}
+			.col-50 {
+				width: 50%;
+			}
+			.btn {
+				margin: 12px 0;
+				background-color: #fff;
+				border: 1px solid transparent;
+				border-radius: 4px;
+				font-weight: 400;
+				display: inline-block;
+				cursor: pointer;
+				padding: 6px 12px;
+				text-align: center;
+				white-space: nowrap;
+				vertical-align: middle;
+				text-transform: none;
+				color: #333;
+				border-color: #ccc;
+				background-image: none;
+				-moz-user-select: none;
+			}
+			.ssid {
+				display: block;
+				text-align: left;
+				padding: 12px 12px;
+				font-size: 16px;
+				font-weight: 600;
+				border-radius: 0;
+				margin:0;
+			}
+			.ssid.focus {
+				background: #999;
+			}
+			#wifi-password-form {
+				display: none;
+			}
+		</style>
+	</head>
     <body>
-        <h1>Configure WiFi for your Tako</h1>
-        <div style="width: 50%;margin: 0 auto">
-            <div id="ssids" style="float:left;width:50%;">{ssid}</div>
-            <div style="float:left;width:50%;">
-                <h2>Fill in the WiFi password</h2>
-                <input type="password" placeholder="WiFi password..."
-            </div>
-        </div>
-        <script>
-        </script>
+		<div class="container">
+			<h1>Tako</h1>
+			<form method="POST" action="/send">
+				<div class="row">
+					<div class="col col-50">
+						<h2>Available networks</h2>
+						<div id="ssids">
+							{ssids}
+						</div>
+					</div>
+					<div class="col col-50" id="wifi-password-form">
+						<h2>WiFi password</h2>
+						<input type="hidden" name="ssid" id="ssid-field" value="" />
+						<input type="password" name="password" placeholder="WiFi password..." />
+						<input type="submit" class="btn" value="Save"/>
+					</div>
+				</div>
+			</form>
+			<script>
+				var ssidField = document.getElementById('ssid-field');
+				var ssids = document.getElementsByClassName('ssid');
+				for (var i = 0; i < ssids.length; i++) {
+					ssids[i].addEventListener('click', function () {
+						removeFocus();
+						this.className += ' focus';
+						showWifiPasswordForm();
+						ssidField.value = this.innerHTML;
+					});
+				}
+				
+				function removeFocus() {
+					for (var i = 0; i < ssids.length; i++) {
+						ssids[i].className = ssids[i].className.replace('focus', '');
+					}
+				}
+				
+				function showWifiPasswordForm() {
+					document.getElementById('wifi-password-form').style.display = "block";
+				}
+			</script>
+		</div>
     </body>
 </html>
